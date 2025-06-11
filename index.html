@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Luna's Fun Page</title>
+  <title>Luna's Bouncy Box</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       height: 100%;
-      background-image: url('your-background-image.jpg'); /* Replace this! */
+      background-image: url('your-background-image.jpg'); /* Replace this */
       background-size: cover;
       background-position: center;
       font-family: Comic Sans MS, cursive, sans-serif;
@@ -23,10 +23,10 @@
 
     .box {
       position: absolute;
-      width: 50px;
-      height: 50px;
+      width: 80px;
+      height: 80px;
       background-color: blue;
-      border-radius: 8px;
+      border-radius: 12px;
       top: 50px;
       left: 50px;
       cursor: grab;
@@ -34,9 +34,10 @@
 
     .text-box {
       position: absolute;
-      top: 200px;
-      left: 200px;
-      width: 300px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 360px;
       padding: 20px;
       background-color: rgba(255, 255, 255, 0.85);
       border: 2px solid pink;
@@ -44,6 +45,7 @@
       color: #333;
       font-size: 16px;
       z-index: 2;
+      text-align: center;
     }
   </style>
 </head>
@@ -58,9 +60,12 @@
   <script>
     const player = document.getElementById('player');
     const messageBox = document.getElementById('message-box');
+    const gameArea = document.getElementById('game-area');
 
     let isDragging = false;
-    let offsetX, offsetY;
+    let offsetX = 0, offsetY = 0;
+    let vx = 2, vy = 2; // initial velocity
+    let prevMouseX = 0, prevMouseY = 0;
 
     function getRect(el) {
       return el.getBoundingClientRect();
@@ -80,6 +85,8 @@
       const rect = player.getBoundingClientRect();
       offsetX = e.clientX - rect.left;
       offsetY = e.clientY - rect.top;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
       player.style.cursor = 'grabbing';
     });
 
@@ -91,24 +98,67 @@
     document.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
 
-      const gameAreaRect = document.getElementById('game-area').getBoundingClientRect();
+      const gameAreaRect = gameArea.getBoundingClientRect();
 
       let newX = e.clientX - gameAreaRect.left - offsetX;
       let newY = e.clientY - gameAreaRect.top - offsetY;
 
-      // Temporarily move box to new position
+      // Update velocity based on drag direction
+      vx = e.clientX - prevMouseX;
+      vy = e.clientY - prevMouseY;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+
       player.style.left = `${newX}px`;
       player.style.top = `${newY}px`;
-
-      const playerRect = getRect(player);
-      const messageRect = getRect(messageBox);
-
-      if (checkCollision(playerRect, messageRect)) {
-        // Prevent move if colliding
-        player.style.left = `${parseFloat(player.style.left) - (newX - parseFloat(player.style.left))}px`;
-        player.style.top = `${parseFloat(player.style.top) - (newY - parseFloat(player.style.top))}px`;
-      }
     });
+
+    function animate() {
+      if (!isDragging) {
+        let left = parseFloat(player.style.left) || 0;
+        let top = parseFloat(player.style.top) || 0;
+
+        left += vx;
+        top += vy;
+
+        player.style.left = `${left}px`;
+        player.style.top = `${top}px`;
+
+        const playerRect = getRect(player);
+        const messageRect = getRect(messageBox);
+        const areaRect = gameArea.getBoundingClientRect();
+
+        // Bounce off message box
+        if (checkCollision(playerRect, messageRect)) {
+          // Basic bounce logic: reverse direction if colliding
+          const overlapX = Math.min(playerRect.right, messageRect.right) - Math.max(playerRect.left, messageRect.left);
+          const overlapY = Math.min(playerRect.bottom, messageRect.bottom) - Math.max(playerRect.top, messageRect.top);
+
+          if (overlapX < overlapY) {
+            vx = -vx;
+            // Move out slightly
+            left += vx;
+          } else {
+            vy = -vy;
+            top += vy;
+          }
+          player.style.left = `${left}px`;
+          player.style.top = `${top}px`;
+        }
+
+        // Bounce off walls
+        if (playerRect.left <= areaRect.left || playerRect.right >= areaRect.right) {
+          vx = -vx;
+        }
+        if (playerRect.top <= areaRect.top || playerRect.bottom >= areaRect.bottom) {
+          vy = -vy;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
   </script>
 </body>
 </html>
